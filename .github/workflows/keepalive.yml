@@ -1,0 +1,52 @@
+name: Emby Auto Keepalive
+
+on:
+  schedule:
+    # 每天 UTC 13:00（北京时间 21:00）唤醒一次
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '是否强制立即运行（跳过周内随机调度与等待）'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 恢复周状态缓存
+        uses: actions/cache@v4
+        with:
+          path: .emby_keeper_state.json
+          key: emby-state-${{ github.run_id }}
+          restore-keys: |
+            emby-state-
+
+      - name: 运行保活脚本
+        env:
+          EMBY_HOST: ${{ secrets.EMBY_HOST || 'https://lite.cn2gias.uk' }}
+          EMBY_USER: ${{ secrets.EMBY_USER }}
+          EMBY_PASS: ${{ secrets.EMBY_PASS }}
+          CLIENT_PRESET: hills
+          TRAFFIC_MIN_MB: 150
+          TRAFFIC_MAX_MB: 250
+          RANDOM_DELAY_MAX: 900
+          WEEKLY_RANDOM_MODE: 'true'
+          PROXY_URL: ${{ secrets.PROXY_URL || '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" != "false" ]; then
+            echo "[*] 检测到手动点击触发，将以强制模式 (--force) 立即执行！"
+            python emby_keeper.py --force
+          else
+            python emby_keeper.py
+          fi

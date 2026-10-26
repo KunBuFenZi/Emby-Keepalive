@@ -1,0 +1,16 @@
+# 本地凭据（禁止提交）
+pass.txt
+.env
+
+# 临时状态与缓存文件
+.emby_keeper_state.json
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
